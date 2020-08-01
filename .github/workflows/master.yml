@@ -1,0 +1,36 @@
+name: Push Container to Heroku
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  HEROKU_APP_NAME: kalique
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Login to Heroku Container registry
+      env:
+        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      run: heroku container:login
+    - name: Build and push
+      env:
+        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      run: heroku container:push -a ${{ env.HEROKU_APP_NAME }} --arg RAILS_ENV=production web
+    - name: Release
+      env:
+        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      run: heroku container:release -a ${{ env.HEROKU_APP_NAME }} web release
+    - name: Build test stack
+      env:
+        APP_HOST: http://kalique.herokuapp.com
+      run: docker-compose -f test.yml build
+    - name: Test UAT
+      env:
+        APP_HOST: http://kalique.herokuapp.com
+      run: docker-compose -f test.yml run --rm test
