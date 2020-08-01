@@ -1,0 +1,48 @@
+version: '3.4'
+
+services:
+  pg:
+    image: postgres:12.3
+    environment:
+      POSTGRES_PASSWORD: 123
+    volumes:
+      - ../kalique_data/pg:/var/lib/postgresql/data
+
+  app: &app
+    build:
+      context: .
+      target: kalique_base
+    environment:
+      VK_APP_ID: "${VK_APP_ID}"
+      VK_SECRET: "${VK_SECRET}"
+      VK_SERVICE: "${VK_SERVICE}"
+
+      ADMIN_LOGIN: "${ADMIN_LOGIN}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
+
+      PG_HOST: pg
+    tmpfs:
+      - /tmp
+
+  backend: &backend
+    <<: *app
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app:cached
+      - bundle:/usr/local/bundle
+    depends_on:
+      - pg
+
+  runner:
+    <<: *backend
+    command: /bin/bash
+
+  rails:
+    <<: *backend
+    command: bundle exec rails server -b 0.0.0.0
+    ports:
+      - "3000:3000"
+
+volumes:
+  bundle:
